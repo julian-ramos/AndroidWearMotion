@@ -9,10 +9,20 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.FloatMath;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
 
 public class SensorFragment extends Fragment implements SensorEventListener {
 
@@ -51,6 +61,32 @@ public class SensorFragment extends Fragment implements SensorEventListener {
 
         mSensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
         mSensor = mSensorManager.getDefaultSensor(mSensorType);
+
+        //Database testing section
+        DataBaseHandler db = new DataBaseHandler(getActivity());
+        db.update();
+        File dbFile = getActivity().getDatabasePath(DataBaseHandler.DATABASE_NAME);
+        Log.d("DB",dbFile.getAbsolutePath());
+
+        /**
+         * CRUD Operations
+         * */
+        // Inserting Contacts
+        Log.d("Insert: ", "Inserting ..");
+        db.addContact(new Contact("Ravi", "5"));
+        db.addContact(new Contact("Srinivas", "6"));
+        db.addContact(new Contact("Tommy", "7"));
+        db.addContact(new Contact("Karthik", "8"));
+
+        // Reading all contacts
+        Log.d("Reading: ", "Reading all contacts..");
+        List<Contact> contacts = db.getAllContacts();
+
+        for (Contact cn : contacts) {
+            String log = "Id: " + cn.getID() + " ,Name: " + cn.getName() + " ,Phone: " + cn.getPhoneNumber();
+            // Writing Contacts to log
+            Log.d("Name: ", log);
+        }
     }
 
     @Override
@@ -125,11 +161,21 @@ public class SensorFragment extends Fragment implements SensorEventListener {
             // Change background color if gForce exceeds threshold;
             // otherwise, reset the color
             if(gForce > SHAKE_THRESHOLD) {
-                mView.setBackgroundColor(Color.rgb(0, 100, 0));
+                DataBaseHandler db = new DataBaseHandler(getActivity());
+                mView.setBackgroundColor(Color.rgb(0, 0, 100));
+                Log.d("Insert: ", "Inserting data");
+                db.addData(new Data(gX, gY, gZ));
+                db.close();
             }
             else {
                 mView.setBackgroundColor(Color.BLACK);
             }
+
+            /**
+             * CRUD Operations
+             * */
+            // Inserting Contacts
+
         }
     }
 
@@ -145,11 +191,100 @@ public class SensorFragment extends Fragment implements SensorEventListener {
             if(Math.abs(event.values[0]) > ROTATION_THRESHOLD ||
                Math.abs(event.values[1]) > ROTATION_THRESHOLD ||
                Math.abs(event.values[2]) > ROTATION_THRESHOLD) {
-                mView.setBackgroundColor(Color.rgb(0, 100, 0));
+                mView.setBackgroundColor(Color.rgb(0, 0, 100));
             }
             else {
                 mView.setBackgroundColor(Color.BLACK);
             }
         }
+    }
+
+    @Override
+    public void onDestroy() {
+//        copyDataBase();
+//        copyDatabaseFromAssets(getActivity(),DataBaseHandler.DATABASE_NAME,true);
+        super.onDestroy();
+    }
+
+    private void copyDataBase()
+    {
+        String DB_PATH = "";
+        String DB_NAME = "abc.sqlite";
+
+        Log.i("DB", "New database is being copied to device!");
+        byte[] buffer = new byte[1024];
+
+        int length;
+        // Open your local db as the input stream
+
+        try
+        {
+            DB_PATH = getActivity().getApplicationInfo().dataDir + "/databases/";
+            File dbFile = getActivity().getDatabasePath(DataBaseHandler.DATABASE_NAME);
+            Log.d("DB",dbFile.getPath());
+            Log.d("DB","Trying to copy");
+//            DataBaseHandler.DATABASE_NAME+".sqlite"
+            InputStream myInput = getActivity().getAssets().open(dbFile.getPath());
+//            OutputStream myOutput = new FileOutputStream(DB_PATH + DB_NAME);
+//            while((length = myInput.read(buffer)) > 0)
+//            {
+//                myOutput.write(buffer, 0, length);
+//            }
+//            myOutput.close();
+//            myOutput.flush();
+            myInput.close();
+            Log.d("DB", "New database has been copied to device!");
+
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean copyDatabaseFromAssets(Context context, String databaseName , boolean overwrite)  {
+
+        File outputFile = context.getDatabasePath(databaseName);
+        if (outputFile.exists() && !overwrite) {
+            return true;
+        }
+
+
+
+        try {
+            InputStream inputStream = context.getAssets().open(databaseName);
+            Log.d("DB","Trying to copy");
+
+
+            outputFile = context.getDatabasePath(databaseName + ".temp");
+            outputFile.getParentFile().mkdirs();
+            OutputStream outputStream = new FileOutputStream(outputFile);
+
+            // transfer bytes from the input stream into the output stream
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
+            }
+
+            // Close the streams
+            outputStream.flush();
+            outputStream.close();
+            inputStream.close();
+
+            outputFile.renameTo(context.getDatabasePath(databaseName));
+            Log.d("DB","Database copied");
+
+
+        } catch (IOException e) {
+            Log.d("DB","Couldn't copy database");
+
+            if (outputFile.exists()) {
+                outputFile.delete();
+            }
+            return false;
+        }
+
+        return true;
     }
 }
