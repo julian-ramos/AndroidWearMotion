@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class DatabaseHelper {
     public static final String DATABASE_FILE_PATH = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getPath();
-    public static final String DATABASE_NAME = "motionData";
+    public static final String DATABASE_NAME = "motionData.db";
 
     String TAG="DB";
     // All Static variables
@@ -34,6 +34,7 @@ public class DatabaseHelper {
     // Contacts Table Columns names
     private static final String KEY_ID = "id";
     private static final String KEY_NAME = "name";
+    private static final String KEY_TIME = "timestamp";
     private static final String KEY_X = "dataX";
     private static final String KEY_Y = "dataY";
     private static final String KEY_Z = "dataZ";
@@ -44,8 +45,10 @@ public class DatabaseHelper {
             + KEY_PH_NO + " TEXT" + ")";
 
     String CREATE_DATA_TABLE = "CREATE TABLE " + TABLE_DATA + "("
+            +KEY_TIME+" REAL,"
             + KEY_ID + " INTEGER PRIMARY KEY," + KEY_X + " REAL,"
             + KEY_Y + " REAL," + KEY_Z + " REAL" + ")";
+    String insertTest="insert into data (dataX,dataY,dataZ) values (1,2,3)";
 
 
 
@@ -53,20 +56,35 @@ public class DatabaseHelper {
 
     public DatabaseHelper() {
         try {
-            database = SQLiteDatabase.openDatabase(DATABASE_FILE_PATH
-                    + File.separator + DATABASE_NAME, null, SQLiteDatabase.OPEN_READWRITE);
-        } catch (SQLiteException ex) {
-            Log.e(TAG, "error -- " + ex.getMessage(), ex);
-            // error means tables does not exits
+            Log.d(TAG,DATABASE_FILE_PATH
+                    + File.separator + DATABASE_NAME);
+            database= SQLiteDatabase.openOrCreateDatabase(DATABASE_FILE_PATH
+                    + File.separator + DATABASE_NAME, null);
+            Log.d(TAG,"creating");
             createTables();
-        } finally {
-            database.close();
+
+//            database = SQLiteDatabase.openDatabase(DATABASE_FILE_PATH
+//                    + File.separator + DATABASE_NAME, null, SQLiteDatabase.OPEN_READWRITE);
+        } catch (SQLiteException ex) {
+            Log.e(TAG, "Could not create the database " + ex.getMessage(), ex);
+            // error means tables does not exits
+
         }
+//        finally {
+
+//        }
     }
 
     private void createTables() {
         database.execSQL(CREATE_CONTACTS_TABLE);
+        Log.d(TAG,"Created contacts table");
         database.execSQL(CREATE_DATA_TABLE);
+        Log.d(TAG,"Created data table");
+
+        //Add some way to verify that the tables were created
+//        database.execSQL("SELECT name FROM sqlite_master WHERE type = 'table'\n");
+//        database.execSQL(insertTest);
+        database.close();
     }
 
     public void close() {
@@ -88,15 +106,21 @@ public class DatabaseHelper {
     }
     void addData(Data data) {
         SQLiteDatabase db = this.getWritableDatabase();
+        Log.d(TAG,db.getPath());
 
         ContentValues values = new ContentValues();
+        long unixTime = System.currentTimeMillis() / 1000L;
+        values.put(KEY_TIME,data.getTime());
         values.put(KEY_X, data.getX());
         values.put(KEY_Y, data.getY());
         values.put(KEY_Z, data.getZ());
 
 
+
         // Inserting Row
-        db.insert(TABLE_DATA, null, values);
+        if (db.insert(TABLE_DATA, null, values)==-1){
+            Log.d(TAG,"The data insertion failed");
+        }
         db.close(); // Closing database connection
     }
 
@@ -179,8 +203,21 @@ public class DatabaseHelper {
         values.put(KEY_PH_NO, contact.getPhoneNumber());
 
         // updating row
+
         return db.update(TABLE_CONTACTS, values, KEY_ID + " = ?",
                 new String[] { String.valueOf(contact.getID()) });
+    }
+
+    void update(){
+        Log.d(TAG,"Hard update");
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_CONTACTS);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_DATA);
+
+        // Create tables again
+        createTables();
+        db.close();
+
     }
 
     // Deleting single contact
@@ -201,5 +238,17 @@ public class DatabaseHelper {
 
         // return count
         return cursor.getCount();
+    }
+
+    void addContact(Contact contact) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(KEY_NAME, contact.getName()); // Contact Name
+        values.put(KEY_PH_NO, contact.getPhoneNumber()); // Contact Phone
+
+        // Inserting Row
+        db.insert(TABLE_CONTACTS, null, values);
+        db.close(); // Closing database connection
     }
 }

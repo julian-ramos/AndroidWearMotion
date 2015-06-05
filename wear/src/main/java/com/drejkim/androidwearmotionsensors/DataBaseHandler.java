@@ -8,6 +8,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Environment;
 import android.util.Log;
 import android.content.ContextWrapper;
 
@@ -22,7 +23,7 @@ public class DataBaseHandler extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 1;
 
     // Database Name
-    public static final String DATABASE_NAME = "contactsManager";
+    public static final String DATABASE_NAME = "motionData.db";
 
     // Contacts table name
     private static final String TABLE_CONTACTS = "contacts";
@@ -36,8 +37,15 @@ public class DataBaseHandler extends SQLiteOpenHelper {
     private static final String KEY_Z = "dataZ";
     private static final String KEY_PH_NO = "phone_number";
 
-    public DataBaseHandler(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+//    public DataBaseHandler(Context context) {
+//        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+//    }
+
+    public DataBaseHandler(final Context context) {
+//        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getPath()
+        super(context,
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getPath()
+                + File.separator+ DATABASE_NAME, null, DATABASE_VERSION);
     }
 
 //    DataBaseHandler(final Context context, String databasename)
@@ -62,10 +70,22 @@ public class DataBaseHandler extends SQLiteOpenHelper {
             String CREATE_DATA_TABLE = "CREATE TABLE " + TABLE_DATA + "("
                 + KEY_ID + " INTEGER PRIMARY KEY," + KEY_X + " REAL,"
                 + KEY_Y + " REAL," + KEY_Z + " REAL" + ")";
-        Log.d("DB",CREATE_DATA_TABLE);
+        Log.d("DB","Creating database"+"/n"+CREATE_DATA_TABLE);
         db.execSQL(CREATE_DATA_TABLE);
         db.execSQL(CREATE_CONTACTS_TABLE);
 
+    }
+
+    @Override
+    public SQLiteDatabase getWritableDatabase() {
+
+
+        SQLiteDatabase database;
+        database = SQLiteDatabase.openDatabase(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getPath()
+                        + File.separator+ DATABASE_NAME, null,
+                SQLiteDatabase.OPEN_READWRITE);
+        Log.d(TAG,"Database returned");
+        return database;
     }
 
     // Upgrading database

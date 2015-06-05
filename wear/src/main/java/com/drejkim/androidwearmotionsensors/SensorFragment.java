@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.lang.Object;
 
 public class SensorFragment extends Fragment implements SensorEventListener {
 
@@ -39,6 +40,9 @@ public class SensorFragment extends Fragment implements SensorEventListener {
     private int mSensorType;
     private long mShakeTime = 0;
     private long mRotationTime = 0;
+    long unixTime;
+    DatabaseHelper db ;
+//    DataBaseHandler db;
 
     public static SensorFragment newInstance(int sensorType) {
         SensorFragment f = new SensorFragment();
@@ -52,6 +56,10 @@ public class SensorFragment extends Fragment implements SensorEventListener {
     }
 
     @Override public void onCreate(Bundle savedInstanceState) {
+//        db = new DataBaseHandler(getActivity());
+        db = new DatabaseHelper();
+
+//        db.update();
         super.onCreate(savedInstanceState);
 
         Bundle args = getArguments();
@@ -63,10 +71,11 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         mSensor = mSensorManager.getDefaultSensor(mSensorType);
 
         //Database testing section
-        DataBaseHandler db = new DataBaseHandler(getActivity());
-        db.update();
-        File dbFile = getActivity().getDatabasePath(DataBaseHandler.DATABASE_NAME);
-        Log.d("DB",dbFile.getAbsolutePath());
+//        DataBaseHandler db = new DataBaseHandler(getActivity());
+//        DatabaseHelper db = new DatabaseHelper();
+//        db.update();
+//        File dbFile = getActivity().getDatabasePath(DataBaseHandler.DATABASE_NAME);
+//        Log.d("DB",dbFile.getAbsolutePath());
 
         /**
          * CRUD Operations
@@ -161,11 +170,14 @@ public class SensorFragment extends Fragment implements SensorEventListener {
             // Change background color if gForce exceeds threshold;
             // otherwise, reset the color
             if(gForce > SHAKE_THRESHOLD) {
-                DataBaseHandler db = new DataBaseHandler(getActivity());
+//                DataBaseHandler db = new DataBaseHandler(getActivity());
+
                 mView.setBackgroundColor(Color.rgb(0, 0, 100));
-                Log.d("Insert: ", "Inserting data");
-                db.addData(new Data(gX, gY, gZ));
-                db.close();
+                unixTime = System.currentTimeMillis();
+                Log.d("Insert: ", "Inserting data"+Long.toString(unixTime));
+
+                db.addData(new Data(unixTime,gX, gY, gZ));
+
             }
             else {
                 mView.setBackgroundColor(Color.BLACK);
